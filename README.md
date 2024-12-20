@@ -3,6 +3,20 @@ Docker Image and Helm Chart CVE comparison tool
 
 This tool allows you to scan and compare Docker images or Helm charts and analyze their CVE (Common Vulnerabilities and Exposures) reports.
 
+## Prerequisites
+
+Before we begin, make sure you have the following prerequisites installed:
+
+- [Trivy](https://trivy.dev/latest/getting-started/installation/)
+
+## Building the Executable
+
+To build the executable binary for the tool, run the following command in the project directory:
+
+```sh
+go build -o HelmScan cmd/app/main.go
+```
+
 ## Usage
 
 There are three main ways to use this tool:
@@ -16,7 +30,7 @@ There are three main ways to use this tool:
 You can run the tool with command-line arguments to compare two artifacts:
 
 ```
-./helmscan --compare [--report] [--json] <artifact1> <artifact2>
+./HelmScan --compare [--report] [--json] <artifact1> <artifact2>
 ```
 
 Flags:
@@ -29,10 +43,10 @@ Flags:
 Examples:
 ```
 # Compare Docker images and generate both JSON and Markdown reports
-./helmscan --compare --report --json docker.io/library/ubuntu:20.04 docker.io/library/ubuntu:22.04
+./HelmScan --compare --report --json docker.io/library/ubuntu:20.04 docker.io/library/ubuntu:22.04
 
 # Compare Helm charts with only JSON output
-./helmscan --compare --json myrepo/mychart@1.0.0 myrepo/mychart@2.0.0
+./HelmScan --compare --json myrepo/mychart@1.0.0 myrepo/mychart@2.0.0
 ```
 
 ### 2. Interactive menu system
@@ -40,7 +54,7 @@ Examples:
 To use the interactive menu system, simply run the executable without any arguments:
 
 ```
-./helmscan
+./HelmScan
 ```
 
 Follow the on-screen prompts to:
@@ -53,16 +67,16 @@ Follow the on-screen prompts to:
 To scan a single artifact, provide its reference as an argument:
 
 ```
-./helmscan <artifact_reference>
+./HelmScan <artifact_reference>
 ```
 
 Example:
 ```
 # Scan a Docker image
-./helmscan docker.io/library/ubuntu:22.04
+./HelmScan docker.io/library/ubuntu:22.04
 
 # Scan a Helm chart
-./helmscan myrepo/mychart@1.0.0
+./HelmScan myrepo/mychart@1.0.0
 ```
 
 ## Output

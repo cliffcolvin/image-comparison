@@ -492,7 +492,7 @@ func convertVulnMapToInterface(vulns map[string][]Vulnerability) map[string]map[
 	return result
 }
 
-func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
+func ScanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
 	logger.Infof("Scanning image: %s", imageURL)
 	result, err := ScanImage(imageURL)
 	if err != nil {

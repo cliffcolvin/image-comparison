@@ -263,7 +263,7 @@ func compareImageVulnerabilities(before, after *ContainerImage, comparison *Helm
 
 func extractImagesFromYAML(yamlData []byte) ([]*ContainerImage, error) {
 	// Use yq to convert YAML to JSON, then use jq to extract image values
-	cmd := exec.Command("bash", "-c", `yq e -o json - | jq -r '.. | .image? | select(.)'`)
+	cmd := exec.Command("bash", "-c", `yq '.. | .image? | select(.)'`)
 	cmd.Stdin = bytes.NewReader(yamlData)
 	output, err := cmd.Output()
 	if err != nil {
@@ -284,6 +284,7 @@ func extractImagesFromYAML(yamlData []byte) ([]*ContainerImage, error) {
 }
 
 func parseImageString(imageString string) *ContainerImage {
+	imageString = strings.Trim(imageString, "\"")
 	parts := strings.Split(imageString, ":")
 	var repository, imageName, tag string
 
@@ -637,7 +638,7 @@ func GenerateSingleScanReport(chart HelmChart, jsonOutput bool) string {
 	return reports.GenerateSingleScanReport("helm", chartRef, vulns, jsonOutput)
 }
 
-func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
+func ScanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
 	logger.Infof("Scanning Helm chart: %s", chartRef)
 	result, err := Scan(chartRef)
 	if err != nil {

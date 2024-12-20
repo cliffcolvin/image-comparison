@@ -108,9 +108,9 @@ func getUserInput() string {
 
 func scanSingleArtifact(artifactRef string, saveReport bool, jsonOutput bool) {
 	if isHelmChart(artifactRef) {
-		scanSingleHelmChart(artifactRef, saveReport, jsonOutput)
+		helmscan.ScanSingleHelmChart(artifactRef, saveReport, jsonOutput)
 	} else {
-		scanSingleImage(artifactRef, saveReport, jsonOutput)
+		imageScan.ScanSingleImage(artifactRef, saveReport, jsonOutput)
 	}
 }
 
@@ -142,44 +142,6 @@ func compareArtifacts(ref1, ref2 string, saveReport bool, jsonOutput bool) {
 func isHelmChart(ref string) bool {
 	// This is a simple heuristic. You might want to improve this logic.
 	return strings.Contains(ref, "/") && strings.Contains(ref, "@")
-}
-
-func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
-	logger.Infof("Scanning image: %s", imageURL)
-	result, err := imageScan.ScanImage(imageURL)
-	if err != nil {
-		logger.Errorf("Error scanning image: %v", err)
-		return
-	}
-
-	// Generate and handle the report
-	report := imageScan.GenerateReport(&imageScan.ImageComparisonReport{
-		Image2: result,
-	}, jsonOutput, saveReport)
-
-	// Print to console
-	fmt.Println(report)
-}
-
-func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
-	logger.Infof("Scanning Helm chart: %s", chartRef)
-	parts := strings.Split(chartRef, "@")
-	if len(parts) != 2 {
-		logger.Fatalf("Invalid Helm chart reference. Expected format: repo/chart@version")
-	}
-	result, err := helmscan.Scan(chartRef)
-	if err != nil {
-		logger.Errorf("Error scanning Helm chart: %v", err)
-		return
-	}
-
-	// Generate and handle the report
-	report := helmscan.GenerateReport(helmscan.HelmComparison{
-		After: result,
-	}, jsonOutput, saveReport)
-
-	// Print to console
-	fmt.Println(report)
 }
 
 func compareHelmCharts(chartRef1, chartRef2 string, saveReport bool, jsonOutput bool) {

@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-// CreateSafeFileName creates a safe filename from a string by removing special characters
 func CreateSafeFileName(input string) string {
 	replacer := strings.NewReplacer(
 		"/", "_",
@@ -21,7 +20,6 @@ func CreateSafeFileName(input string) string {
 	return replacer.Replace(input)
 }
 
-// SaveToFile saves the report to a file in the working-files directory
 func SaveToFile(report string, filename string) error {
 	if err := os.MkdirAll("working-files", 0755); err != nil {
 		return fmt.Errorf("error creating working-files directory: %w", err)
@@ -37,17 +35,13 @@ func SaveToFile(report string, filename string) error {
 	return nil
 }
 
-// Common table formatting functions
 func FormatMarkdownTable(headers []string, rows [][]string) string {
 	var sb strings.Builder
 
-	// Write headers
 	sb.WriteString("| " + strings.Join(headers, " | ") + " |\n")
 
-	// Write separator
 	sb.WriteString("|" + strings.Repeat("---------|", len(headers)) + "\n")
 
-	// Write rows
 	for _, row := range rows {
 		sb.WriteString("| " + strings.Join(row, " | ") + " |\n")
 	}
@@ -55,7 +49,6 @@ func FormatMarkdownTable(headers []string, rows [][]string) string {
 	return sb.String()
 }
 
-// Common severity-related functions
 func SeverityValue(severity string) int {
 	switch strings.ToLower(severity) {
 	case "critical":
@@ -71,12 +64,10 @@ func SeverityValue(severity string) int {
 	}
 }
 
-// Common report section formatting
 func FormatSection(title string, content string) string {
 	return fmt.Sprintf("### %s\n\n%s\n", title, content)
 }
 
-// Update type definitions to be exported (uppercase)
 type SortableCVE struct {
 	ID       string
 	Severity string
@@ -94,13 +85,11 @@ func (s SortableCVEList) Less(i, j int) bool {
 	return SeverityValue(s[i].Severity) > SeverityValue(s[j].Severity)
 }
 
-// Vulnerability interface that both packages' vulnerability types must implement
 type Vulnerability interface {
 	GetID() string
 	GetSeverity() string
 }
 
-// ConvertToJSONCVEs now accepts a map of Vulnerability interface
 func ConvertToJSONCVEs(cves map[string]map[string]Vulnerability) []CVE {
 	var jsonCVEs []CVE
 	var sortedCVEs SortableCVEList
@@ -132,10 +121,9 @@ func ConvertToJSONCVEs(cves map[string]map[string]Vulnerability) []CVE {
 	return jsonCVEs
 }
 
-// Add these types after the existing types
 type SingleScanReport struct {
-	ArtifactType string // "helm" or "image"
-	ArtifactRef  string // Full reference to the scanned artifact
+	ArtifactType string
+	ArtifactRef  string
 	Summary      SeveritySummary
 	CVEs         []CVE
 }
@@ -147,7 +135,6 @@ type SeveritySummary struct {
 	Low      int
 }
 
-// Add these functions after the existing functions
 func GenerateSingleScanReport(artifactType string, artifactRef string, vulns map[string]Vulnerability, generateJSON bool) string {
 	report := SingleScanReport{
 		ArtifactType: artifactType,
@@ -212,7 +199,6 @@ func generateMarkdownSingleReport(report SingleScanReport) string {
 	sb.WriteString(fmt.Sprintf("# %s Scan Report\n", strings.Title(report.ArtifactType)))
 	sb.WriteString(fmt.Sprintf("## Artifact: %s\n\n", report.ArtifactRef))
 
-	// Summary table
 	sb.WriteString("### Vulnerability Summary\n\n")
 	sb.WriteString("| Severity | Count |\n")
 	sb.WriteString("|----------|-------|\n")
@@ -221,7 +207,6 @@ func generateMarkdownSingleReport(report SingleScanReport) string {
 	sb.WriteString(fmt.Sprintf("| Medium | %d |\n", report.Summary.Medium))
 	sb.WriteString(fmt.Sprintf("| Low | %d |\n\n", report.Summary.Low))
 
-	// CVEs by severity
 	sb.WriteString("### Vulnerabilities\n\n")
 	currentSeverity := ""
 	for _, cve := range report.CVEs {

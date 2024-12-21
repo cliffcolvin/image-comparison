@@ -173,12 +173,10 @@ func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	// Generate and handle the report
 	report := helmscan.GenerateReport(helmscan.HelmComparison{
 		After: result,
 	}, jsonOutput, saveReport)
 
-	// Print to console
 	fmt.Println(report)
 }
 
@@ -191,7 +189,6 @@ func compareHelmCharts(chartRef1, chartRef2 string, saveReport bool, jsonOutput 
 
 	logger.Infof("Comparing Helm charts: %s and %s", chartRef1, chartRef2)
 
-	// Scan each chart
 	scannedChart1, err := helmscan.Scan(chartRef1)
 	if err != nil {
 		logger.Errorf("Error scanning first Helm chart: %v", err)
@@ -207,10 +204,6 @@ func compareHelmCharts(chartRef1, chartRef2 string, saveReport bool, jsonOutput 
 	comparison := helmscan.CompareHelmCharts(scannedChart1, scannedChart2)
 	report := helmscan.GenerateReport(comparison, jsonOutput, saveReport)
 
-	// Print to console
-	//fmt.Println(report)
-
-	// Save to file
 	err = reports.SaveToFile(report, "helm_comparison_report.md")
 	if err != nil {
 		log.Fatalf("Error saving report: %v", err)
@@ -239,14 +232,11 @@ func compareImages(imageURL1, imageURL2 string, saveReport bool, jsonOutput bool
 		return
 	}
 
-	// Compare the scans
 	comparison := imageScan.CompareScans(scan1, scan2)
 	report := imageScan.GenerateReport(comparison, jsonOutput, saveReport)
 
-	// Print to console
 	fmt.Println(report)
 
-	// Save to file if requested
 	if saveReport {
 		ext := ".md"
 		if jsonOutput {

@@ -21,29 +21,24 @@ import (
 var logger *zap.SugaredLogger
 
 func init() {
-	// Create a custom encoder config
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.TimeKey = "timestamp"
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
-	// Create a custom core that writes to console
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(os.Stdout),
 		zap.InfoLevel,
 	)
 
-	// Create a logger with the custom core
 	zapLogger := zap.New(core)
 	defer zapLogger.Sync()
 
-	// Create a sugared logger
 	logger = zapLogger.Sugar()
 
 	logger.Info("Application started")
 
-	// Check Trivy installation
 	if err := imageScan.CheckTrivyInstallation(); err != nil {
 		logger.Fatalf("Trivy installation check failed: %v", err)
 	}
@@ -91,12 +86,10 @@ func (ci ContainerImage) String() string {
 }
 
 func Scan(chartRef string) (HelmChart, error) {
-	// Add this at the beginning of the Scan function
 	if err := os.MkdirAll("working-files", 0755); err != nil {
 		return HelmChart{}, fmt.Errorf("error creating working-files directory: %w", err)
 	}
 
-	// Parse the chart reference
 	repoName, chartName, version, err := parseChartReference(chartRef)
 	if err != nil {
 		return HelmChart{}, err
@@ -110,7 +103,6 @@ func Scan(chartRef string) (HelmChart, error) {
 	}
 	logger.Infof("Helm repo update output: %s", string(output))
 
-	// Use local Helm to template the chart
 	cmd := exec.Command("helm", "template", fmt.Sprintf("%s/%s", repoName, chartName), "--version", version)
 	output, err = cmd.CombinedOutput()
 	if err != nil {
@@ -118,14 +110,12 @@ func Scan(chartRef string) (HelmChart, error) {
 		return HelmChart{}, fmt.Errorf("error templating chart: %v\nOutput: %s", err, string(output))
 	}
 
-	// Save the output to a file
 	outputFileName := fmt.Sprintf("working-files/%s_%s_%s_helm_output.yaml", repoName, chartName, version)
 	err = os.WriteFile(outputFileName, output, 0644)
 	if err != nil {
 		return HelmChart{}, fmt.Errorf("error saving helm output to file: %w", err)
 	}
 
-	// Extract images using yq and jq
 	images, err := extractImagesFromYAML(output)
 	if err != nil {
 		return HelmChart{}, fmt.Errorf("error extracting images: %w", err)
@@ -262,7 +252,6 @@ func compareImageVulnerabilities(before, after *ContainerImage, comparison *Helm
 }
 
 func extractImagesFromYAML(yamlData []byte) ([]*ContainerImage, error) {
-	// Use yq to convert YAML to JSON, then use jq to extract image values
 	cmd := exec.Command("bash", "-c", `yq e -o json - | jq -r '.. | .image? | select(.)'`)
 	cmd.Stdin = bytes.NewReader(yamlData)
 	output, err := cmd.Output()
@@ -270,10 +259,8 @@ func extractImagesFromYAML(yamlData []byte) ([]*ContainerImage, error) {
 		return nil, fmt.Errorf("error extracting images: %w", err)
 	}
 
-	// Split the output into lines
 	imageStrings := strings.Split(strings.TrimSpace(string(output)), "\n")
 
-	// Create ContainerImage objects
 	var images []*ContainerImage
 	for _, imageString := range imageStrings {
 		image := parseImageString(imageString)
@@ -355,7 +342,6 @@ func downloadChart(repoName, chartName, version, destDir string) (string, error)
 func GenerateReport(comparison HelmComparison, generateJSON bool, generateMD bool) string {
 	var lastReport string
 
-	// Create base filename once
 	baseFilename := reports.CreateSafeFileName(
 		fmt.Sprintf("%s_%s_%s_to_%s_%s_%s_helm_comparison",
 			comparison.Before.HelmRepo,
@@ -365,7 +351,6 @@ func GenerateReport(comparison HelmComparison, generateJSON bool, generateMD boo
 			comparison.After.Name,
 			comparison.After.Version))
 
-	// Generate markdown report if requested
 	if generateMD {
 		mdReport := generateMarkdownReport(comparison)
 		lastReport = mdReport
@@ -375,7 +360,6 @@ func GenerateReport(comparison HelmComparison, generateJSON bool, generateMD boo
 		}
 	}
 
-	// Generate JSON report if requested
 	if generateJSON {
 		jsonReport := generateJSONReport(comparison)
 		lastReport = jsonReport
@@ -395,7 +379,6 @@ func generateMarkdownReport(comparison HelmComparison) string {
 		comparison.Before.HelmRepo, comparison.Before.Name, comparison.Before.Version,
 		comparison.After.HelmRepo, comparison.After.Name, comparison.After.Version))
 
-	// CVE by Severity
 	sb.WriteString("### CVE by Severity\n\n")
 	sb.WriteString("| Severity | Count | Prev Count | Difference |\n")
 	sb.WriteString("|----------|-------|------------|------------|\n")
@@ -404,7 +387,6 @@ func generateMarkdownReport(comparison HelmComparison) string {
 	prevCounts := make(map[string]int)
 	currentCounts := make(map[string]int)
 
-	// Count vulnerabilities for both images
 	for _, img := range comparison.Before.ContainsImages {
 		for _, vuln := range img.Vulnerabilities {
 			prevCounts[vuln.Severity]++
@@ -416,7 +398,6 @@ func generateMarkdownReport(comparison HelmComparison) string {
 		}
 	}
 
-	// Generate table rows
 	for _, severity := range severities {
 		count := currentCounts[severity]
 		prevCount := prevCounts[severity]
@@ -545,7 +526,6 @@ func generateJSONSeverityCounts(comparison HelmComparison) []reports.SeverityCou
 	prevCounts := make(map[string]int)
 	currentCounts := make(map[string]int)
 
-	// Count vulnerabilities for both images
 	for _, img := range comparison.Before.ContainsImages {
 		for _, vuln := range img.Vulnerabilities {
 			prevCounts[vuln.Severity]++
@@ -557,7 +537,6 @@ func generateJSONSeverityCounts(comparison HelmComparison) []reports.SeverityCou
 		}
 	}
 
-	// Generate counts for each severity
 	for _, severity := range severities {
 		current := currentCounts[severity]
 		previous := prevCounts[severity]
@@ -632,7 +611,6 @@ func GenerateSingleScanReport(chart HelmChart, jsonOutput bool) string {
 		}
 	}
 
-	// Generate report using the centralized report generator
 	chartRef := fmt.Sprintf("%s/%s@%s", chart.HelmRepo, chart.Name, chart.Version)
 	return reports.GenerateSingleScanReport("helm", chartRef, vulns, jsonOutput)
 }
@@ -645,10 +623,8 @@ func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	// Generate report using the new function
 	report := GenerateSingleScanReport(result, jsonOutput)
 
-	// Save report if requested
 	if saveReport {
 		ext := ".md"
 		if jsonOutput {
@@ -660,6 +636,5 @@ func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
 		}
 	}
 
-	// Print to console
 	fmt.Println(report)
 }

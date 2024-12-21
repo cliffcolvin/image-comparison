@@ -16,24 +16,20 @@ import (
 var logger *zap.SugaredLogger
 
 func init() {
-	// Create a custom encoder config
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.TimeKey = "timestamp"
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
-	// Create a custom core that writes to console
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(os.Stdout),
 		zap.InfoLevel,
 	)
 
-	// Create a logger with the custom core
 	zapLogger := zap.New(core)
 	defer zapLogger.Sync()
 
-	// Create a sugared logger
 	logger = zapLogger.Sugar()
 }
 
@@ -73,7 +69,6 @@ func ScanImage(imageName string) (ScanResult, error) {
 		return ScanResult{}, nil
 	}
 
-	// Create a safe filename from the image name
 	safeFileName := reports.CreateSafeFileName(imageName)
 	outputFile := fmt.Sprintf("working-files/%s_trivy_output.json", safeFileName)
 
@@ -132,7 +127,6 @@ func CompareScans(firstScan, secondScan ScanResult) *ImageComparisonReport {
 		UnchangedCVEs: make(map[string][]Vulnerability),
 	}
 
-	// Create maps for easier lookup
 	firstVulns := make(map[string]Vulnerability)
 	for _, vuln := range firstScan.VulnList {
 		firstVulns[vuln.ID] = vuln
@@ -143,7 +137,6 @@ func CompareScans(firstScan, secondScan ScanResult) *ImageComparisonReport {
 		secondVulns[vuln.ID] = vuln
 	}
 
-	// Find removed and unchanged vulnerabilities
 	for id, vuln := range firstVulns {
 		if _, exists := secondVulns[id]; exists {
 			comparison.UnchangedCVEs[vuln.Severity] = append(comparison.UnchangedCVEs[vuln.Severity], vuln)
@@ -152,7 +145,6 @@ func CompareScans(firstScan, secondScan ScanResult) *ImageComparisonReport {
 		}
 	}
 
-	// Find added vulnerabilities
 	for id, vuln := range secondVulns {
 		if _, exists := firstVulns[id]; !exists {
 			comparison.AddedCVEs[vuln.Severity] = append(comparison.AddedCVEs[vuln.Severity], vuln)
@@ -220,13 +212,11 @@ func difference(a, b []string) []string {
 }
 
 func CheckTrivyInstallation() error {
-	// Check if Trivy is installed
 	_, err := exec.LookPath("trivy")
 	if err != nil {
 		return fmt.Errorf("Trivy is not installed. Please install Trivy and ensure it's in your PATH")
 	}
 
-	// Check Trivy version
 	cmd := exec.Command("trivy", "--version")
 	output, err := cmd.Output()
 	if err != nil {
@@ -268,13 +258,11 @@ func contains(slice []string, item string) bool {
 func GenerateReport(comparison *ImageComparisonReport, generateJSON bool, generateMD bool) string {
 	var lastReport string
 
-	// Create base filename once
 	baseFilename := reports.CreateSafeFileName(
 		fmt.Sprintf("%s_to_%s_image_comparison",
 			comparison.Image1.Image,
 			comparison.Image2.Image))
 
-	// Generate markdown report if requested
 	if generateMD {
 		mdReport := generateMarkdownReport(comparison)
 		lastReport = mdReport
@@ -284,7 +272,6 @@ func GenerateReport(comparison *ImageComparisonReport, generateJSON bool, genera
 		}
 	}
 
-	// Generate JSON report if requested
 	if generateJSON {
 		jsonReport := generateJSONReport(comparison)
 		lastReport = jsonReport
@@ -298,7 +285,6 @@ func GenerateReport(comparison *ImageComparisonReport, generateJSON bool, genera
 }
 
 func generateJSONReport(comparison *ImageComparisonReport) string {
-	// Convert the map[string][]Vulnerability to map[string]map[string]interface{}
 	addedCVEs := convertVulnMapToInterface(comparison.AddedCVEs)
 	removedCVEs := convertVulnMapToInterface(comparison.RemovedCVEs)
 	unchangedCVEs := convertVulnMapToInterface(comparison.UnchangedCVEs)
@@ -359,13 +345,11 @@ func generateMarkdownReport(comparison *ImageComparisonReport) string {
 	sb.WriteString(fmt.Sprintf("### Comparing images: %s and %s\n\n",
 		comparison.Image1.Image, comparison.Image2.Image))
 
-	// CVE by Severity section
 	headers := []string{"Severity", "Count", "Prev Count", "Difference"}
 	rows := generateSeverityRows(comparison) // helper function to generate rows
 	sb.WriteString(reports.FormatSection("CVE by Severity",
 		reports.FormatMarkdownTable(headers, rows)))
 
-	// Unchanged CVEs section
 	sb.WriteString("### Unchanged CVEs\n\n")
 	if len(comparison.UnchangedCVEs) == 0 {
 		sb.WriteString("No unchanged vulnerabilities found.\n\n")
@@ -373,7 +357,6 @@ func generateMarkdownReport(comparison *ImageComparisonReport) string {
 		sb.WriteString(formatVulnerabilitySection(comparison.UnchangedCVEs))
 	}
 
-	// Added CVEs section
 	sb.WriteString("### Added CVEs\n\n")
 	if len(comparison.AddedCVEs) == 0 {
 		sb.WriteString("No new vulnerabilities found.\n\n")
@@ -381,7 +364,6 @@ func generateMarkdownReport(comparison *ImageComparisonReport) string {
 		sb.WriteString(formatVulnerabilitySection(comparison.AddedCVEs))
 	}
 
-	// Removed CVEs section
 	sb.WriteString("### Removed CVEs\n\n")
 	if len(comparison.RemovedCVEs) == 0 {
 		sb.WriteString("No removed vulnerabilities found.\n\n")
@@ -399,7 +381,6 @@ func formatVulnerabilitySection(vulns map[string][]Vulnerability) string {
 		return "No vulnerabilities found.\n\n"
 	}
 
-	// Sort severities
 	severities := make([]string, 0, len(vulns))
 	for severity := range vulns {
 		severities = append(severities, severity)
@@ -432,26 +413,22 @@ func generateSeverityRows(comparison *ImageComparisonReport) [][]string {
 	severities := []string{"critical", "high", "medium", "low"}
 	var rows [][]string
 
-	// Count current and previous vulnerabilities by severity
 	prevCounts := make(map[string]int)
 	currentCounts := make(map[string]int)
 
-	// Count previous vulnerabilities
 	for _, vuln := range comparison.Image1.VulnList {
 		prevCounts[vuln.Severity]++
 	}
 
-	// Count current vulnerabilities
 	for _, vuln := range comparison.Image2.VulnList {
 		currentCounts[vuln.Severity]++
 	}
 
-	// Generate table rows
 	for _, severity := range severities {
 		count := currentCounts[severity]
 		prevCount := prevCounts[severity]
 		difference := count - prevCount
-		differenceStr := fmt.Sprintf("%+d", difference) // Use %+d to always show the sign
+		differenceStr := fmt.Sprintf("%+d", difference)
 
 		rows = append(rows, []string{
 			severity,
@@ -464,17 +441,14 @@ func generateSeverityRows(comparison *ImageComparisonReport) [][]string {
 	return rows
 }
 
-// Add GetSeverity method to Vulnerability type to satisfy the interface
 func (v Vulnerability) GetSeverity() string {
 	return v.Severity
 }
 
-// Add GetID method to satisfy the reports.Vulnerability interface
 func (v Vulnerability) GetID() string {
 	return v.ID
 }
 
-// Update convertVulnMapToInterface to convert []Vulnerability to map[string]Vulnerability
 func convertVulnMapToInterface(vulns map[string][]Vulnerability) map[string]map[string]reports.Vulnerability {
 	result := make(map[string]map[string]reports.Vulnerability)
 
@@ -500,16 +474,13 @@ func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	// Convert vulnerabilities to map
 	vulns := make(map[string]reports.Vulnerability)
 	for _, v := range result.VulnList {
 		vulns[v.ID] = v
 	}
 
-	// Generate report using the centralized report generator
 	report := reports.GenerateSingleScanReport("image", imageURL, vulns, jsonOutput)
 
-	// Save report if requested
 	if saveReport {
 		ext := ".md"
 		if jsonOutput {
@@ -521,6 +492,5 @@ func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
 		}
 	}
 
-	// Print to console
 	fmt.Println(report)
 }

@@ -227,21 +227,6 @@ func compareImages(imageURL1, imageURL2 string, saveReport bool, jsonOutput bool
 	report := imageScan.GenerateReport(comparison, jsonOutput, saveReport)
 
 	fmt.Println(report)
-
-	if saveReport {
-		ext := ".md"
-		if jsonOutput {
-			ext = ".json"
-		}
-		filename := fmt.Sprintf("image_comparison_%s_%s%s",
-			reports.CreateSafeFileName(imageURL1),
-			reports.CreateSafeFileName(imageURL2),
-			ext)
-		err = reports.SaveToFile(report, filename)
-		if err != nil {
-			logger.Errorf("Error saving report: %v", err)
-		}
-	}
 }
 
 func ensureWorkingFilesDir() error {

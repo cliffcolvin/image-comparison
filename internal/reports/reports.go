@@ -13,21 +13,28 @@ import (
 
 func CreateSafeFileName(input string) string {
 	replacer := strings.NewReplacer(
-		"/", "_",
-		":", "_",
-		".", "_",
-		"@", "_",
-		" ", "_",
+		"/", "-",
+		":", "-",
+		".", "-",
+		"@", "-",
+		" ", "-",
+		"_", "-",
 	)
 	return replacer.Replace(input)
 }
 
 func SaveToFile(report string, filename string) error {
-	if err := os.MkdirAll("working-files", 0755); err != nil {
+	if err := os.MkdirAll("working-files/scans", 0755); err != nil {
 		return fmt.Errorf("error creating working-files directory: %w", err)
 	}
 
-	filepath := filepath.Join("working-files", filename)
+	baseDir := strings.TrimSuffix(filename, filepath.Ext(filename))
+	scanDir := filepath.Join("working-files/scans", CreateSafeFileName(baseDir))
+	if err := os.MkdirAll(scanDir, 0755); err != nil {
+		return fmt.Errorf("error creating scan directory: %w", err)
+	}
+
+	filepath := filepath.Join(scanDir, filename)
 	err := os.WriteFile(filepath, []byte(report), 0644)
 	if err != nil {
 		return fmt.Errorf("error writing report to file: %w", err)

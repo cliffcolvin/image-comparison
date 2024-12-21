@@ -44,8 +44,8 @@ func init() {
 }
 
 func Scan(chartRef string) (helmscanTypes.HelmChart, error) {
-	if err := os.MkdirAll("working-files", 0755); err != nil {
-		return helmscanTypes.HelmChart{}, fmt.Errorf("error creating working-files directory: %w", err)
+	if err := os.MkdirAll("working-files/tmp", 0755); err != nil {
+		return helmscanTypes.HelmChart{}, fmt.Errorf("error creating working-files/tmp directory: %w", err)
 	}
 
 	repoName, chartName, version, err := parseChartReference(chartRef)
@@ -68,7 +68,7 @@ func Scan(chartRef string) (helmscanTypes.HelmChart, error) {
 		return helmscanTypes.HelmChart{}, fmt.Errorf("error templating chart: %v\nOutput: %s", err, string(output))
 	}
 
-	outputFileName := fmt.Sprintf("working-files/%s_%s_%s_helm_output.yaml", repoName, chartName, version)
+	outputFileName := fmt.Sprintf("working-files/tmp/%s_%s_%s_helm_output.yaml", repoName, chartName, version)
 	err = os.WriteFile(outputFileName, output, 0644)
 	if err != nil {
 		return helmscanTypes.HelmChart{}, fmt.Errorf("error saving helm output to file: %w", err)
@@ -298,36 +298,8 @@ func downloadChart(repoName, chartName, version, destDir string) (string, error)
 }
 
 func GenerateReport(comparison helmscanTypes.HelmComparison, generateJSON bool, generateMD bool) string {
-	var lastReport string
-
-	baseFilename := reports.CreateSafeFileName(
-		fmt.Sprintf("%s_%s_%s_to_%s_%s_%s_helm_comparison",
-			comparison.Before.HelmRepo,
-			comparison.Before.Name,
-			comparison.Before.Version,
-			comparison.After.HelmRepo,
-			comparison.After.Name,
-			comparison.After.Version))
-
-	if generateMD {
-		mdReport := reports.GenerateMarkdownReport(comparison)
-		lastReport = mdReport
-
-		if err := reports.SaveToFile(mdReport, baseFilename+".md"); err != nil {
-			fmt.Printf("Error saving markdown report: %v\n", err)
-		}
-	}
-
-	if generateJSON {
-		jsonReport := reports.GenerateJSONReport(comparison)
-		lastReport = jsonReport
-
-		if err := reports.SaveToFile(jsonReport, baseFilename+".json"); err != nil {
-			fmt.Printf("Error saving JSON report: %v\n", err)
-		}
-	}
-
-	return lastReport
+	generator := NewHelmReportGenerator(comparison)
+	return reports.GenerateReport(generator, generateJSON, generateMD)
 }
 
 func GenerateSingleScanReport(chart helmscanTypes.HelmChart, jsonOutput bool) string {

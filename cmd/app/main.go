@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	helmscanTypes "github.com/cliffcolvin/helmscan/internal/helmScanTypes"
 	"github.com/cliffcolvin/helmscan/internal/helmscan"
 	"github.com/cliffcolvin/helmscan/internal/imageScan"
 	"github.com/cliffcolvin/helmscan/internal/reports"
@@ -19,36 +20,30 @@ import (
 var logger *zap.SugaredLogger
 
 func init() {
-	// Create a custom encoder config
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.TimeKey = "timestamp"
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 
-	// Create a custom core that writes to console
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(os.Stdout),
 		zap.InfoLevel,
 	)
 
-	// Create a logger with the custom core
 	zapLogger := zap.New(core)
 	defer zapLogger.Sync()
 
-	// Create a sugared logger
 	logger = zapLogger.Sugar()
 
 	logger.Info("Application started")
 
-	// Check Trivy installation
 	if err := imageScan.CheckTrivyInstallation(); err != nil {
 		logger.Fatalf("Trivy installation check failed: %v", err)
 	}
 }
 
 func main() {
-	// Ensure the working-files directory exists
 	if err := ensureWorkingFilesDir(); err != nil {
 		logger.Fatalf("Failed to create working-files directory: %v", err)
 	}
@@ -140,7 +135,6 @@ func compareArtifacts(ref1, ref2 string, saveReport bool, jsonOutput bool) {
 }
 
 func isHelmChart(ref string) bool {
-	// This is a simple heuristic. You might want to improve this logic.
 	return strings.Contains(ref, "/") && strings.Contains(ref, "@")
 }
 
@@ -152,12 +146,10 @@ func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	// Generate and handle the report
-	report := imageScan.GenerateReport(&imageScan.ImageComparisonReport{
+	report := imageScan.GenerateReport(&helmscanTypes.ImageComparisonReport{
 		Image2: result,
 	}, jsonOutput, saveReport)
 
-	// Print to console
 	fmt.Println(report)
 }
 
@@ -173,7 +165,7 @@ func scanSingleHelmChart(chartRef string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	report := helmscan.GenerateReport(helmscan.HelmComparison{
+	report := helmscan.GenerateReport(helmscanTypes.HelmComparison{
 		After: result,
 	}, jsonOutput, saveReport)
 
@@ -219,7 +211,6 @@ func compareImages(imageURL1, imageURL2 string, saveReport bool, jsonOutput bool
 		imageURL2 = getUserInput()
 	}
 
-	// Scan both images
 	scan1, err := imageScan.ScanImage(imageURL1)
 	if err != nil {
 		logger.Errorf("Error scanning first image: %v", err)

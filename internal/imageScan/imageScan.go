@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	helmscanTypes "github.com/cliffcolvin/helmscan/internal/helmScanTypes"
 	"github.com/cliffcolvin/helmscan/internal/reports"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -33,40 +34,9 @@ func init() {
 	logger = zapLogger.Sugar()
 }
 
-type GitHubRelease struct {
-	TagName string `json:"tag_name"`
-}
-
-type ScanResult struct {
-	Image           string
-	Vulnerabilities SeverityCounts
-	VulnsByLevel    map[string][]string
-	VulnList        []Vulnerability
-}
-
-type ImageComparisonReport struct {
-	Image1        ScanResult
-	Image2        ScanResult
-	RemovedCVEs   map[string][]Vulnerability
-	AddedCVEs     map[string][]Vulnerability
-	UnchangedCVEs map[string][]Vulnerability
-}
-
-type Vulnerability struct {
-	ID       string
-	Severity string
-}
-
-type SeverityCounts struct {
-	Low      int
-	Medium   int
-	High     int
-	Critical int
-}
-
-func ScanImage(imageName string) (ScanResult, error) {
+func ScanImage(imageName string) (helmscanTypes.ScanResult, error) {
 	if strings.Contains(imageName, "alpine") {
-		return ScanResult{}, nil
+		return helmscanTypes.ScanResult{}, nil
 	}
 
 	safeFileName := reports.CreateSafeFileName(imageName)
@@ -82,17 +52,17 @@ func ScanImage(imageName string) (ScanResult, error) {
 
 	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return ScanResult{}, fmt.Errorf("error running command: %w\nOutput: %s", err, string(combinedOutput))
+		return helmscanTypes.ScanResult{}, fmt.Errorf("error running command: %w\nOutput: %s", err, string(combinedOutput))
 	}
 
 	jsonData, err := os.ReadFile(outputFile)
 	if err != nil {
-		return ScanResult{}, fmt.Errorf("error reading %s: %w", outputFile, err)
+		return helmscanTypes.ScanResult{}, fmt.Errorf("error reading %s: %w", outputFile, err)
 	}
 
 	vulns := extractVulnerabilities(string(jsonData))
 
-	result := ScanResult{
+	result := helmscanTypes.ScanResult{
 		Image:           imageName,
 		Vulnerabilities: countVulnerabilities(vulns),
 		VulnsByLevel:    groupVulnerabilitiesByLevel(vulns),
@@ -102,15 +72,15 @@ func ScanImage(imageName string) (ScanResult, error) {
 	return result, nil
 }
 
-func countVulnerabilities(vulns []Vulnerability) SeverityCounts {
-	counts := SeverityCounts{}
+func countVulnerabilities(vulns []helmscanTypes.Vulnerability) helmscanTypes.SeverityCounts {
+	counts := helmscanTypes.SeverityCounts{}
 	for _, vuln := range vulns {
 		incrementSeverityCount(&counts, vuln.Severity)
 	}
 	return counts
 }
 
-func groupVulnerabilitiesByLevel(vulns []Vulnerability) map[string][]string {
+func groupVulnerabilitiesByLevel(vulns []helmscanTypes.Vulnerability) map[string][]string {
 	grouped := make(map[string][]string)
 	for _, vuln := range vulns {
 		grouped[vuln.Severity] = append(grouped[vuln.Severity], vuln.ID)
@@ -118,21 +88,21 @@ func groupVulnerabilitiesByLevel(vulns []Vulnerability) map[string][]string {
 	return grouped
 }
 
-func CompareScans(firstScan, secondScan ScanResult) *ImageComparisonReport {
-	comparison := &ImageComparisonReport{
+func CompareScans(firstScan, secondScan helmscanTypes.ScanResult) *helmscanTypes.ImageComparisonReport {
+	comparison := &helmscanTypes.ImageComparisonReport{
 		Image1:        firstScan,
 		Image2:        secondScan,
-		RemovedCVEs:   make(map[string][]Vulnerability),
-		AddedCVEs:     make(map[string][]Vulnerability),
-		UnchangedCVEs: make(map[string][]Vulnerability),
+		RemovedCVEs:   make(map[string][]helmscanTypes.Vulnerability),
+		AddedCVEs:     make(map[string][]helmscanTypes.Vulnerability),
+		UnchangedCVEs: make(map[string][]helmscanTypes.Vulnerability),
 	}
 
-	firstVulns := make(map[string]Vulnerability)
+	firstVulns := make(map[string]helmscanTypes.Vulnerability)
 	for _, vuln := range firstScan.VulnList {
 		firstVulns[vuln.ID] = vuln
 	}
 
-	secondVulns := make(map[string]Vulnerability)
+	secondVulns := make(map[string]helmscanTypes.Vulnerability)
 	for _, vuln := range secondScan.VulnList {
 		secondVulns[vuln.ID] = vuln
 	}
@@ -154,7 +124,7 @@ func CompareScans(firstScan, secondScan ScanResult) *ImageComparisonReport {
 	return comparison
 }
 
-func extractVulnerabilities(scan string) []Vulnerability {
+func extractVulnerabilities(scan string) []helmscanTypes.Vulnerability {
 	var result struct {
 		Results []struct {
 			Vulnerabilities []struct {
@@ -170,10 +140,10 @@ func extractVulnerabilities(scan string) []Vulnerability {
 		return nil
 	}
 
-	var vulns []Vulnerability
+	var vulns []helmscanTypes.Vulnerability
 	for _, res := range result.Results {
 		for _, vuln := range res.Vulnerabilities {
-			vulns = append(vulns, Vulnerability{
+			vulns = append(vulns, helmscanTypes.Vulnerability{
 				ID:       vuln.VulnerabilityID,
 				Severity: strings.ToLower(vuln.Severity),
 			})
@@ -183,7 +153,7 @@ func extractVulnerabilities(scan string) []Vulnerability {
 	return vulns
 }
 
-func incrementSeverityCount(counts *SeverityCounts, severity string) {
+func incrementSeverityCount(counts *helmscanTypes.SeverityCounts, severity string) {
 	switch severity {
 	case "low":
 		counts.Low++
@@ -229,13 +199,13 @@ func CheckTrivyInstallation() error {
 	return nil
 }
 
-func calculateDifference(before, after map[string][]string) map[string][]Vulnerability {
-	diff := make(map[string][]Vulnerability)
+func calculateDifference(before, after map[string][]string) map[string][]helmscanTypes.Vulnerability {
+	diff := make(map[string][]helmscanTypes.Vulnerability)
 
 	for severity, vulns := range before {
 		for _, vuln := range vulns {
 			if !contains(after[severity], vuln) {
-				diff[severity] = append(diff[severity], Vulnerability{
+				diff[severity] = append(diff[severity], helmscanTypes.Vulnerability{
 					ID:       vuln,
 					Severity: severity,
 				})
@@ -255,7 +225,7 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func GenerateReport(comparison *ImageComparisonReport, generateJSON bool, generateMD bool) string {
+func GenerateReport(comparison *helmscanTypes.ImageComparisonReport, generateJSON bool, generateMD bool) string {
 	var lastReport string
 
 	baseFilename := reports.CreateSafeFileName(
@@ -284,7 +254,7 @@ func GenerateReport(comparison *ImageComparisonReport, generateJSON bool, genera
 	return lastReport
 }
 
-func generateJSONReport(comparison *ImageComparisonReport) string {
+func generateJSONReport(comparison *helmscanTypes.ImageComparisonReport) string {
 	addedCVEs := convertVulnMapToInterface(comparison.AddedCVEs)
 	removedCVEs := convertVulnMapToInterface(comparison.RemovedCVEs)
 	unchangedCVEs := convertVulnMapToInterface(comparison.UnchangedCVEs)
@@ -310,7 +280,7 @@ func generateJSONReport(comparison *ImageComparisonReport) string {
 	return string(jsonBytes)
 }
 
-func generateJSONSeverityCounts(comparison *ImageComparisonReport) []reports.SeverityCount {
+func generateJSONSeverityCounts(comparison *helmscanTypes.ImageComparisonReport) []reports.SeverityCount {
 	severities := []string{"critical", "high", "medium", "low"}
 	counts := make([]reports.SeverityCount, 0, len(severities))
 
@@ -338,7 +308,7 @@ func generateJSONSeverityCounts(comparison *ImageComparisonReport) []reports.Sev
 	return counts
 }
 
-func generateMarkdownReport(comparison *ImageComparisonReport) string {
+func generateMarkdownReport(comparison *helmscanTypes.ImageComparisonReport) string {
 	var sb strings.Builder
 
 	sb.WriteString("## Image Comparison Report\n")
@@ -374,7 +344,7 @@ func generateMarkdownReport(comparison *ImageComparisonReport) string {
 	return sb.String()
 }
 
-func formatVulnerabilitySection(vulns map[string][]Vulnerability) string {
+func formatVulnerabilitySection(vulns map[string][]helmscanTypes.Vulnerability) string {
 	var sb strings.Builder
 
 	if len(vulns) == 0 {
@@ -409,7 +379,7 @@ func formatVulnerabilitySection(vulns map[string][]Vulnerability) string {
 	return sb.String()
 }
 
-func generateSeverityRows(comparison *ImageComparisonReport) [][]string {
+func generateSeverityRows(comparison *helmscanTypes.ImageComparisonReport) [][]string {
 	severities := []string{"critical", "high", "medium", "low"}
 	var rows [][]string
 
@@ -441,23 +411,15 @@ func generateSeverityRows(comparison *ImageComparisonReport) [][]string {
 	return rows
 }
 
-func (v Vulnerability) GetSeverity() string {
-	return v.Severity
-}
-
-func (v Vulnerability) GetID() string {
-	return v.ID
-}
-
-func convertVulnMapToInterface(vulns map[string][]Vulnerability) map[string]map[string]reports.Vulnerability {
-	result := make(map[string]map[string]reports.Vulnerability)
+func convertVulnMapToInterface(vulns map[string][]helmscanTypes.Vulnerability) map[string]map[string]helmscanTypes.Vulnerability {
+	result := make(map[string]map[string]helmscanTypes.Vulnerability)
 
 	for severity, vulnList := range vulns {
 		if _, exists := result[severity]; !exists {
-			result[severity] = make(map[string]reports.Vulnerability)
+			result[severity] = make(map[string]helmscanTypes.Vulnerability)
 		}
 		for _, vuln := range vulnList {
-			result[vuln.ID] = map[string]reports.Vulnerability{
+			result[vuln.ID] = map[string]helmscanTypes.Vulnerability{
 				"vulnerability": vuln,
 			}
 		}
@@ -474,7 +436,7 @@ func scanSingleImage(imageURL string, saveReport bool, jsonOutput bool) {
 		return
 	}
 
-	vulns := make(map[string]reports.Vulnerability)
+	vulns := make(map[string]helmscanTypes.Vulnerability)
 	for _, v := range result.VulnList {
 		vulns[v.ID] = v
 	}

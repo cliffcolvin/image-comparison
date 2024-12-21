@@ -4,14 +4,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
 	helmscanTypes "github.com/cliffcolvin/helmscan/internal/helmScanTypes"
 	"github.com/cliffcolvin/helmscan/internal/helmscan"
 	"github.com/cliffcolvin/helmscan/internal/imageScan"
-	"github.com/cliffcolvin/helmscan/internal/reports"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -194,12 +192,12 @@ func compareHelmCharts(chartRef1, chartRef2 string, saveReport bool, jsonOutput 
 	}
 
 	comparison := helmscan.CompareHelmCharts(scannedChart1, scannedChart2)
-	report := helmscan.GenerateReport(comparison, jsonOutput, saveReport)
+	helmscan.GenerateReport(comparison, jsonOutput, saveReport)
 
-	err = reports.SaveToFile(report, "helm_comparison_report.md")
-	if err != nil {
-		log.Fatalf("Error saving report: %v", err)
-	}
+	// err = reports.SaveToFile(report, "helm_comparison_report.md")
+	// if err != nil {
+	// 	log.Fatalf("Error saving report: %v", err)
+	// }
 
 }
 

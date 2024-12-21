@@ -44,8 +44,8 @@ func init() {
 }
 
 func Scan(chartRef string) (helmscanTypes.HelmChart, error) {
-	if err := os.MkdirAll("working-files/tmp", 0755); err != nil {
-		return helmscanTypes.HelmChart{}, fmt.Errorf("error creating working-files/tmp directory: %w", err)
+	if err := os.MkdirAll("working-files/tmp/helm_output", 0755); err != nil {
+		return helmscanTypes.HelmChart{}, fmt.Errorf("error creating working-files/tmp/helm_output directory: %w", err)
 	}
 
 	repoName, chartName, version, err := parseChartReference(chartRef)
@@ -68,7 +68,7 @@ func Scan(chartRef string) (helmscanTypes.HelmChart, error) {
 		return helmscanTypes.HelmChart{}, fmt.Errorf("error templating chart: %v\nOutput: %s", err, string(output))
 	}
 
-	outputFileName := fmt.Sprintf("working-files/tmp/%s_%s_%s_helm_output.yaml", repoName, chartName, version)
+	outputFileName := fmt.Sprintf("working-files/tmp/helm_output/%s_%s_%s_helm_output.yaml", repoName, chartName, version)
 	err = os.WriteFile(outputFileName, output, 0644)
 	if err != nil {
 		return helmscanTypes.HelmChart{}, fmt.Errorf("error saving helm output to file: %w", err)

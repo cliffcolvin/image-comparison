@@ -39,12 +39,12 @@ func ScanImage(imageName string) (helmscanTypes.ScanResult, error) {
 	}
 
 	// Ensure working-files/tmp directory exists
-	if err := os.MkdirAll("working-files/tmp", 0755); err != nil {
+	if err := os.MkdirAll("working-files/tmp/trivy_output", 0755); err != nil {
 		return helmscanTypes.ScanResult{}, fmt.Errorf("failed to create working directory: %w", err)
 	}
 
 	safeFileName := reports.CreateSafeFileName(imageName)
-	outputFile := fmt.Sprintf("working-files/tmp/%s_trivy_output.json", safeFileName)
+	outputFile := fmt.Sprintf("working-files/tmp/trivy_output/%s_trivy_output.json", safeFileName)
 
 	cmd := exec.Command("trivy", "image",
 		"-f", "json",

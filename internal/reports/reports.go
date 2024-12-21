@@ -265,7 +265,6 @@ func GenerateMarkdownReport(comparison helmscanTypes.HelmComparison) string {
 	}
 	sb.WriteString("\n\n")
 
-	// Images table
 	sb.WriteString("### Images\n\n")
 	sb.WriteString("| Image Name | Status | Before Repo | After Repo | Before Tag | After Tag |\n")
 	sb.WriteString("|------------|--------|-------------|------------|------------|-----------|\n")
@@ -295,7 +294,6 @@ func GenerateMarkdownReport(comparison helmscanTypes.HelmComparison) string {
 	sb.WriteString(strings.Join(imageRows, "\n"))
 	sb.WriteString("\n\n")
 
-	// CVEs tables
 	sb.WriteString("### Unchanged CVEs\n\n")
 	sb.WriteString(sortAndFormatCVEs(comparison.UnchangedCVEs))
 	sb.WriteString("\n\n")
@@ -411,7 +409,6 @@ func GenerateJSONSeverityCounts(comparison helmscanTypes.HelmComparison) []Sever
 func GenerateJSONImageChanges(comparison helmscanTypes.HelmComparison) []ImageChange {
 	var changes []ImageChange
 
-	// Add added images
 	for name, images := range comparison.AddedImages {
 		changes = append(changes, ImageChange{
 			Name:      name,
@@ -421,7 +418,6 @@ func GenerateJSONImageChanges(comparison helmscanTypes.HelmComparison) []ImageCh
 		})
 	}
 
-	// Add removed images
 	for name, images := range comparison.RemovedImages {
 		changes = append(changes, ImageChange{
 			Name:       name,
@@ -431,7 +427,6 @@ func GenerateJSONImageChanges(comparison helmscanTypes.HelmComparison) []ImageCh
 		})
 	}
 
-	// Add changed images
 	for name, images := range comparison.ChangedImages {
 		changes = append(changes, ImageChange{
 			Name:       name,
@@ -443,7 +438,6 @@ func GenerateJSONImageChanges(comparison helmscanTypes.HelmComparison) []ImageCh
 		})
 	}
 
-	// Add unchanged images
 	for name, images := range comparison.UnChangedImages {
 		changes = append(changes, ImageChange{
 			Name:       name,

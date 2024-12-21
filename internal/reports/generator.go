@@ -43,13 +43,11 @@ func generateMarkdownReport(generator ReportGenerator) string {
 		sb.WriteString("\n")
 	}
 
-	// Severity counts
 	headers := []string{"Severity", "Count", "Prev Count", "Difference"}
 	rows := formatSeverityRows(generator.GetSeverityCounts())
 	sb.WriteString(FormatSection("CVE by Severity",
 		FormatMarkdownTable(headers, rows)))
 
-	// CVEs sections
 	sb.WriteString("### Unchanged CVEs\n\n")
 	if unchangedCVEs := generator.GetUnchangedCVEs(); len(unchangedCVEs) == 0 {
 		sb.WriteString("No unchanged vulnerabilities found.\n\n")

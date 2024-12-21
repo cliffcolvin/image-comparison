@@ -1,83 +1,63 @@
 # helmscan
-Docker Image and Helm Chart CVE comparison tool
+Container Image and Helm Chart CVE comparison tool
 
-This tool allows you to scan and compare Docker images or Helm charts and analyze their CVE (Common Vulnerabilities and Exposures) reports.
+This tool allows you to scan and compare Container images or Helm charts and analyze their CVE (Common Vulnerabilities and Exposures) reports.
+When comparing Helm charts, the tool will download the charts and scan every container image in the chart.
 
 ## Usage
 
-There are three main ways to use this tool:
+The tool supports two main operations:
+1. Single artifact scanning
+2. Artifact comparison
 
-1. Command-line arguments
-2. Interactive menu system
-3. Single artifact scanning
+### Single Artifact Scanning
 
-### 1. Command-line arguments
-
-You can run the tool with command-line arguments to compare two artifacts:
-
+```bash
+helmscan [--json] [--report] <artifact>
 ```
-./helmscan --compare [--report] [--json] <artifact1> <artifact2>
-```
-
-Flags:
-- `--compare`: Enable comparison mode
-- `--report`: Generate a Markdown report file (optional)
-- `--json`: Generate a JSON report file (optional)
-- `<artifact1>`: The URL of the "before" image or Helm chart reference
-- `<artifact2>`: The URL of the "after" image or Helm chart reference
 
 Examples:
-```
-# Compare Docker images and generate both JSON and Markdown reports
-./helmscan --compare --report --json docker.io/library/ubuntu:20.04 docker.io/library/ubuntu:22.04
-
-# Compare Helm charts with only JSON output
-./helmscan --compare --json myrepo/mychart@1.0.0 myrepo/mychart@2.0.0
-```
-
-### 2. Interactive menu system
-
-To use the interactive menu system, simply run the executable without any arguments:
-
-```
-./helmscan
-```
-
-Follow the on-screen prompts to:
-1. Scan a single image or Helm chart
-2. Compare two images or Helm charts
-3. Exit
-
-### 3. Single artifact scanning
-
-To scan a single artifact, provide its reference as an argument:
-
-```
-./helmscan <artifact_reference>
-```
-
-Example:
-```
+```bash
 # Scan a Docker image
-./helmscan docker.io/library/ubuntu:22.04
+helmscan --json --report docker.io/library/ubuntu:22.04
 
 # Scan a Helm chart
-./helmscan myrepo/mychart@1.0.0
+helmscan --report myrepo/mychart@1.0.0
 ```
 
-## Output
+### Artifact Comparison
 
-The tool will provide information about:
+```bash
+helmscan --compare [--json] [--report] <artifact1> <artifact2>
+```
 
-- CVE severity levels and counts
-- Added CVEs: New vulnerabilities in the second artifact
-- Removed CVEs: Vulnerabilities that were present in the first artifact but addressed in the second
-- Unchanged CVEs: Vulnerabilities present in both artifacts
+Examples:
+```bash
+# Compare Docker images
+helmscan --compare --json --report docker.io/library/ubuntu:20.04 docker.io/library/ubuntu:22.04
 
-When using the `--report` flag, the output will be saved to the `working-files` directory.
+# Compare Helm charts
+helmscan --compare --report myrepo/mychart@1.0.0 myrepo/mychart@2.0.0
+```
 
-## Note
+### Flags
+- `--compare`: Enable comparison mode
+- `--report`: Generate a report file (optional)
+- `--json`: Output in JSON format (optional, defaults to markdown)
 
-- Make sure you have the necessary permissions to pull the Docker images or access the Helm charts you want to analyze
+### Output
+
+Reports are automatically saved in the `working-files` directory when using `--report`:
+```
+working-files/
+  scans/
+    {scan-name}/
+      scan_report.{md,json}
+  tmp/
+    trivy_output/
+      {image}_trivy_output.json
+```
+
+## Requirements
+- Trivy must be installed and accessible in your PATH
 - For Helm charts, use the format `repo/chart@version`
-- The tool requires Trivy to be installed and accessible in your PATH

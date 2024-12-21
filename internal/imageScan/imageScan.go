@@ -38,7 +38,6 @@ func ScanImage(imageName string) (helmscanTypes.ScanResult, error) {
 		return helmscanTypes.ScanResult{}, nil
 	}
 
-	// Ensure working-files/tmp directory exists
 	if err := os.MkdirAll("working-files/tmp/trivy_output", 0755); err != nil {
 		return helmscanTypes.ScanResult{}, fmt.Errorf("failed to create working directory: %w", err)
 	}

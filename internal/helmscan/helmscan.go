@@ -303,11 +303,9 @@ func GenerateReport(comparison helmscanTypes.HelmComparison, generateJSON bool, 
 }
 
 func GenerateSingleScanReport(chart helmscanTypes.HelmChart, jsonOutput bool) string {
-	// Collect all vulnerabilities from all images
 	vulns := make(map[string]helmscanTypes.Vulnerability)
 	for _, img := range chart.ContainsImages {
 		for id, v := range img.Vulnerabilities {
-			// Create a composite key that includes the image name to avoid overwriting
 			vulns[fmt.Sprintf("%s:%s", img.ImageName, id)] = v
 		}
 	}
